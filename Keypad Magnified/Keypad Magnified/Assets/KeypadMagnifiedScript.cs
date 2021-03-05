@@ -15,15 +15,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     public Material[] ledColors; // black green red blue cyan
     public SpriteRenderer[] buttonLabels;
 
-    public Sprite[] copyright = new Sprite[4];
-    public Sprite[] dragon = new Sprite[4];
-    public Sprite[] euro = new Sprite[4];
-    public Sprite[] kitty = new Sprite[4];
-    public Sprite[] N = new Sprite[4];
-    public Sprite[] omega = new Sprite[4];
-    public Sprite[] six = new Sprite[4];
-    public Sprite[] star = new Sprite[4];
-    public Sprite[] wisp = new Sprite[4];
+    public Sprite[] copyright, dragon, euro, kitty, N, omega, six, star, wisp = new Sprite[4];
     private Sprite[][] allSprites = new Sprite[9][];
     
     static int moduleIdCounter = 1;
@@ -73,6 +65,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     int stage = 0;
     int keyIndexPressed; 
     bool[] isPressed = new bool[4];
+    bool[] isAnimating = new bool[4];
 
     void Awake ()
     {
@@ -86,7 +79,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         allSprites[1] = six;
         allSprites[2] = wisp;
         allSprites[3] = omega;
-        allSprites[4] = copyright;
+        allSprites[4] = copyright;  // Puts all of the public arrays into one big array.
         allSprites[5] = kitty;
         allSprites[6] = euro;
         allSprites[7] = star;
@@ -102,7 +95,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     void KeyPress(KMSelectable key)
     {
         keyIndexPressed = Array.IndexOf(keys, key);
-        if (moduleSolved || stage == 4 || isPressed[keyIndexPressed])
+        if (moduleSolved || stage == 4 || isPressed[keyIndexPressed] || isAnimating[keyIndexPressed])
         {
             return;
         }
@@ -143,18 +136,18 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     {
         shufflingPositions.Shuffle();
         leds[chosenPosition].GetComponent<MeshRenderer>().material = ledColors[3];
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 4; i++) // Randomizes the labels.
         {
             buttonLabels[shufflingPositions[i]].sprite = allSprites[chosenGrid[chosenPosition]][i];
         }
     }
     void GetTableSection()
     {
-        bool firstEven = (bomb.GetSerialNumberNumbers().First() % 2 == 0) ? true : false;
-        bool lastEven = (bomb.GetSerialNumberNumbers().Last() % 2 == 0) ? true : false;
+        bool firstEven = bomb.GetSerialNumberNumbers().First() % 2 == 0;
+        bool lastEven = bomb.GetSerialNumberNumbers().Last() % 2 == 0;
         if (bomb.GetSerialNumberNumbers().Last() == 0)
         {
-            tableIndex = (bomb.GetSerialNumberLetters().First() - 65 ) % 9 ;
+            tableIndex = (bomb.GetSerialNumberLetters().First() - 65 ) % 9; 
             
         }
         else { tableIndex = bomb.GetSerialNumberNumbers().Last() - 1; }
@@ -188,7 +181,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         {
             for (int i = 0; i <= 8; i++)
             {
-                tableSection.Add(table[tableIndex][i]);
+                tableSection.Add(table[tableIndex][i]); 
             }
         }
         if (tableUsing == "column")
@@ -209,7 +202,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         int j = 0;
         for (int i = 0; i < 9; i++)
         {
-            if (chosenGrid.Contains(tableSection[i]))
+            if (chosenGrid.Contains(tableSection[i])) //Isolate the symbols from the table section that appear within the keypad.
             {
                 pressSymbols[j] = tableSection[i];
                 j++;
@@ -230,19 +223,16 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         Debug.LogFormat("[Keypad Magnified #{0}] The correct symbol order is {1} {2} {3} {4}, or keys {5} {6} {7} {8} in reading order.", moduleId, 
             symbols[pressSymbols[0]], symbols[pressSymbols[1]], symbols[pressSymbols[2]], symbols[pressSymbols[3]],
             pressPositions[0] + 1, pressPositions[1] + 1, pressPositions[2] + 1, pressPositions[3] + 1);
-        
     }
 
 
     IEnumerator CorrectPress(KMSelectable key, int pressedPos)
     {
         isPressed[pressedPos] = true;
-        int movement = 0;
-        while (movement != 5)
+        while (keys[pressedPos].transform.localPosition.y > -0.01)
         {
-            yield return new WaitForSecondsRealtime(0.007f);
-            keys[pressedPos].transform.localPosition = keys[pressedPos].transform.localPosition + Vector3.up * -0.002f;
-            movement++;
+            keys[pressedPos].transform.localPosition -= new Vector3(0, 0.0015f, 0);
+            yield return null;
         }
         if (pressedPos != chosenPosition)
         {
@@ -256,9 +246,9 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     }
     IEnumerator IncorrectPress(KMSelectable key, int pressedPos)
     {
+        StartCoroutine(StrikeBounce(key, pressedPos));
         GetComponent<KMBombModule>().HandleStrike();
         leds[pressedPos].GetComponent<MeshRenderer>().material = ledColors[2];
-
         yield return new WaitForSecondsRealtime(0.75f);
         if (pressedPos == chosenPosition)
         {
@@ -267,20 +257,32 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         else leds[pressedPos].GetComponent<MeshRenderer>().material = ledColors[0];
         yield return null;
     }
-
+    IEnumerator StrikeBounce(KMSelectable key, int pressedPos)
+    {
+        isAnimating[pressedPos] = true;
+        while (keys[pressedPos].transform.localPosition.y > -0.005)
+        {
+            keys[pressedPos].transform.localPosition -= new Vector3(0, 0.00075f, 0);
+            yield return null;
+        }
+        while (keys[pressedPos].transform.localPosition.y < 0)
+        {
+            keys[pressedPos].transform.localPosition += new Vector3(0, 0.00075f, 0);
+            yield return null;
+        }
+        isAnimating[pressedPos] = false;
+    }
     IEnumerator SolveAnimation()
     {
         yield return new WaitForSecondsRealtime(1f);
-        int movement = 0;
-        while (movement != 20)
-        {
         audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.BigButtonRelease, transform);
+        while (keys[0].transform.localPosition.y < 0)
+        {
             for (int i = 0; i < 4; i++)
             {
-                keys[i].transform.localPosition = keys[i].transform.localPosition + Vector3.up * 0.002f;
-                movement++;
+                keys[i].transform.localPosition += new Vector3(0, 0.001f, 0);
             }
-            yield return new WaitForSecondsRealtime(0.007f);
+            yield return null;
         }
         for (int i = 0; i < 24; i++)
         {
@@ -313,14 +315,15 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         string[] parameters = Command.Trim().ToUpper().Split(' ');
         if (parameters[0] != "PRESS" || parameters.Length != 2)
         {
-            yield return "sendtochaterror I will laser you with aline fucking eyes and destroy your fucking head...";
+            yield return "sendtochaterror";
         }
         else if (!parameters[1].Any(x => "1234".Contains(x)))
         {
-            yield return "sendtochaterror I will laser you with aline fucking eyes and destroy your fucking head...";
+            yield return "sendtochaterror";
         }
         else
         {
+            yield return null;
             for (int i = 0; i < parameters[1].Length; i++)
             {
                 keys[int.Parse(parameters[1][i].ToString()) - 1].OnInteract();

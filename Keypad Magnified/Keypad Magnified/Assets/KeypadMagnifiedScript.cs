@@ -40,7 +40,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         new int[] { 7, 3, 6, 0, 4, 1, 5, 2, 8 },
         new int[] { 2, 5, 8, 6, 3, 7, 4, 0, 1 },
         new int[] { 3, 1, 4, 7, 5, 2, 0, 8, 6 },
-        new int[] { 6, 8, 2, 3, 0, 4, 7, 3, 5 },
+        new int[] { 6, 8, 2, 1, 0, 4, 7, 3, 5 },
         new int[] { 5, 7, 0, 8, 6, 3, 2, 1, 4 },
         new int[] { 8, 6, 7, 4, 2, 0, 1, 5, 3 },
         new int[] { 4, 0, 3, 5, 1, 6, 8, 7, 2 },

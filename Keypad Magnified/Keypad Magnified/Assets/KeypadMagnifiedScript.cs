@@ -57,10 +57,9 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     int tableIndex;
     string tableDirection;
     bool reverse;
-    List<int> tableSection = new List<int>();
 
-    int[] pressSymbols = new int[4];
-    int[] pressPositions = new int[4];
+    List<int> pressSymbols = new List<int>();
+    int[] pressPositions;
 
     int stage = 0;
     int keyIndexPressed; 
@@ -72,9 +71,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         moduleId = moduleIdCounter++;
         
         foreach (KMSelectable key in keys)
-        {
             key.OnInteract += delegate () { KeyPress(key); return false; };
-        }
         allSprites[0] = N;
         allSprites[1] = six;
         allSprites[2] = wisp;
@@ -96,9 +93,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     {
         keyIndexPressed = Array.IndexOf(keys, key);
         if (moduleSolved || stage == 4 || isPressed[keyIndexPressed] || isAnimating[keyIndexPressed])
-        {
             return;
-        }
         audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.BigButtonPress, key.transform);
         keys[keyIndexPressed].AddInteractionPunch(1f);
         if (keyIndexPressed == pressPositions[stage])
@@ -106,9 +101,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
             StartCoroutine(CorrectPress(key, keyIndexPressed));
             Debug.LogFormat("[Keypad Magnified #{0}] You presed key {1}, that was correct.", moduleId, keyIndexPressed + 1);
             if (stage != 3)
-            {
                 stage++;
-            }
             else
             {
                 moduleSolved = true;
@@ -130,7 +123,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         chosenGrid = grids[chosenGridIndex];
         bigSymbol = symbols[chosenGrid[chosenPosition]];
         
-        Debug.LogFormat("[Keypad Magnified #{0}] The large symbol is {1}. The lit LED is on the {2} key. The correct grid is grid {3}. ({4} {5} {6} {7})", moduleId, bigSymbol, positions[chosenPosition], chosenGridIndex + 1, symbols[chosenGrid[0]], symbols[chosenGrid[1]], symbols[chosenGrid[2]], symbols[chosenGrid[3]]);
+        Debug.LogFormat("[Keypad Magnified #{0}] The large symbol is {1}. The lit LED is on the {2} key. The correct grid is grid {3}. ({4})", moduleId, bigSymbol, positions[chosenPosition], chosenGridIndex + 1, chosenGrid.Select(x => symbols[x]).Join());
     }
     void DisplayInfo()
     {
@@ -146,11 +139,8 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         bool firstEven = bomb.GetSerialNumberNumbers().First() % 2 == 0;
         bool lastEven = bomb.GetSerialNumberNumbers().Last() % 2 == 0;
         if (bomb.GetSerialNumberNumbers().Last() == 0)
-        {
             tableIndex = (bomb.GetSerialNumberLetters().First() - 65 ) % 9; 
-            
-        }
-        else { tableIndex = bomb.GetSerialNumberNumbers().Last() - 1; }
+        else tableIndex = bomb.GetSerialNumberNumbers().Last() - 1;
 
         if (!firstEven && lastEven)
         {
@@ -176,53 +166,25 @@ public class KeypadMagnifiedScript : MonoBehaviour {
             tableDirection = "bottom-to-top";
             reverse = true;
         }
-
-        if (tableUsing == "row")
-        {
-            for (int i = 0; i <= 8; i++)
-            {
-                tableSection.Add(table[tableIndex][i]); 
-            }
-        }
-        if (tableUsing == "column")
-        {
-            for (int i = 0; i <= 8; i++)
-            {
-                tableSection.Add(table[i][tableIndex]);
-            }
-        }
-        if (reverse)
-        {
-            tableSection.Reverse();
-        }
-        Debug.LogFormat("[Keypad Magnified #{0}] The module is reading {1} {2} of the table from {3}", moduleId, tableUsing, tableIndex + 1, tableDirection);
+        Debug.LogFormat("[Keypad Magnified #{0}] The module is reading {1} {2} of the table from {3}", moduleId, tableUsing, tableIndex + 1, tableDirection); 
     }
     void GetPresses()
     {
-        int j = 0;
-        for (int i = 0; i < 9; i++)
-        {
-            if (chosenGrid.Contains(tableSection[i])) //Isolate the symbols from the table section that appear within the keypad.
-            {
-                pressSymbols[j] = tableSection[i];
-                j++;
-            }
-        }
+        if (tableUsing == "row")
+            for (int i = 0; i < 9; i++)
+                if (chosenGrid.Contains(table[tableIndex][i]))
+                    pressSymbols.Add(table[tableIndex][i]);
+        if (tableUsing == "column")
+            for (int i = 0; i < 9; i++)
+                if (chosenGrid.Contains(table[i][tableIndex]))
+                    pressSymbols.Add(table[i][tableIndex]);
+        if (reverse)
+            pressSymbols.Reverse();
+        pressPositions = pressSymbols.Select(x => Array.IndexOf(chosenGrid, x)).ToArray();
 
-        for (int i = 0; i < 4; i++)
-        {
-            for (int k = 0; k < 4; k++)
-            {
-                if (chosenGrid[k] == pressSymbols[i])
-                {
-                    pressPositions[i] = k;
-                }
-            }
-        }
+        Debug.LogFormat("[Keypad Magnified #{0}] The correct symbol order is {1}, or keys {2} in reading order.", moduleId,
+            pressSymbols.Select(x => symbols[x]).Join(", "), pressPositions.Select(x => x + 1).Join(", "));
 
-        Debug.LogFormat("[Keypad Magnified #{0}] The correct symbol order is {1} {2} {3} {4}, or keys {5} {6} {7} {8} in reading order.", moduleId, 
-            symbols[pressSymbols[0]], symbols[pressSymbols[1]], symbols[pressSymbols[2]], symbols[pressSymbols[3]],
-            pressPositions[0] + 1, pressPositions[1] + 1, pressPositions[2] + 1, pressPositions[3] + 1);
     }
 
 
@@ -235,14 +197,10 @@ public class KeypadMagnifiedScript : MonoBehaviour {
             yield return null;
         }
         if (pressedPos != chosenPosition)
-        {
             leds[pressedPos].GetComponent<MeshRenderer>().material = ledColors[1]; //sets led to green if not the blue LED
-        }
         else
-        {
             leds[pressedPos].GetComponent<MeshRenderer>().material = ledColors[4]; //if it's the blue LED it's set to cyan
-        }
-            yield return null;
+        yield return null;
     }
     IEnumerator IncorrectPress(KMSelectable key, int pressedPos)
     {
@@ -251,9 +209,8 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         leds[pressedPos].GetComponent<MeshRenderer>().material = ledColors[2];
         yield return new WaitForSecondsRealtime(0.75f);
         if (pressedPos == chosenPosition)
-        {
             leds[pressedPos].GetComponent<MeshRenderer>().material = ledColors[3];
-        }
+
         else leds[pressedPos].GetComponent<MeshRenderer>().material = ledColors[0];
         yield return null;
     }
@@ -313,14 +270,8 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     {
         yield return null;
         string[] parameters = Command.Trim().ToUpper().Split(' ');
-        if (parameters[0] != "PRESS" || parameters.Length != 2)
-        {
+        if (parameters[0] != "PRESS" || parameters.Length != 2 || parameters[1].Any(x => !"1234".Contains(x)))
             yield return "sendtochaterror";
-        }
-        else if (!parameters[1].Any(x => "1234".Contains(x)))
-        {
-            yield return "sendtochaterror";
-        }
         else
         {
             yield return null;
@@ -329,9 +280,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
                 keys[int.Parse(parameters[1][i].ToString()) - 1].OnInteract();
                 yield return new WaitForSecondsRealtime(0.1f);
                 if (moduleSolved)
-                {
                     yield return "solve";
-                }
             }
         }
         

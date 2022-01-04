@@ -21,6 +21,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     static int moduleIdCounter = 1;
     int moduleId;
     private bool moduleSolved;
+    private bool uninteractable;
     char[] symbols = new char[] { 'Ҋ', 'б', 'Ҩ', 'Ω', '©', 'Ѭ', 'Ӭ', '☆', 'Ѯ' };
     int[][] grids = new int[][] //4x9
     {
@@ -72,15 +73,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         
         foreach (KMSelectable key in keys)
             key.OnInteract += delegate () { KeyPress(key); return false; };
-        allSprites[0] = N;
-        allSprites[1] = six;
-        allSprites[2] = wisp;
-        allSprites[3] = omega;
-        allSprites[4] = copyright;  // Puts all of the public arrays into one big array.
-        allSprites[5] = kitty;
-        allSprites[6] = euro;
-        allSprites[7] = star;
-        allSprites[8] = dragon;
+        allSprites = new[] { N, six, wisp, omega, copyright, kitty, euro, star, dragon };
     }
     void Start()
     {
@@ -92,7 +85,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     void KeyPress(KMSelectable key)
     {
         keyIndexPressed = Array.IndexOf(keys, key);
-        if (moduleSolved || stage == 4 || isPressed[keyIndexPressed] || isAnimating[keyIndexPressed])
+        if (uninteractable || stage == 4 || isPressed[keyIndexPressed] || isAnimating[keyIndexPressed])
             return;
         audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.BigButtonPress, key.transform);
         keys[keyIndexPressed].AddInteractionPunch(1f);
@@ -104,7 +97,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
                 stage++;
             else
             {
-                moduleSolved = true;
+                uninteractable = true;
                 Debug.LogFormat("[Keypad Magnified #{0}] Module solved.", moduleId);
                 StartCoroutine(SolveAnimation());
             }
@@ -191,9 +184,9 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     IEnumerator CorrectPress(KMSelectable key, int pressedPos)
     {
         isPressed[pressedPos] = true;
-        while (keys[pressedPos].transform.localPosition.y > -0.01)
+        while (key.transform.localPosition.y > -0.01)
         {
-            keys[pressedPos].transform.localPosition -= new Vector3(0, 0.0015f, 0);
+            key.transform.localPosition -= new Vector3(0, 0.0015f, 0);
             yield return null;
         }
         if (pressedPos != chosenPosition)
@@ -259,6 +252,7 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         yield return new WaitForSecondsRealtime(0.75f);
         audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.CorrectChime, transform);
         GetComponent<KMBombModule>().HandlePass();
+        moduleSolved = true;
         yield return null;
     }
 
@@ -268,18 +262,15 @@ public class KeypadMagnifiedScript : MonoBehaviour {
 
     IEnumerator ProcessTwitchCommand (string Command)
     {
-        yield return null;
         string[] parameters = Command.Trim().ToUpper().Split(' ');
-        if (parameters[0] != "PRESS" || parameters.Length != 2 || parameters[1].Any(x => !"1234".Contains(x)))
-            yield return "sendtochaterror";
-        else
+        if (parameters.Length == 2 && parameters[0] == "PRESS" && parameters[1].All(x => '1' <= x && x <= '4'))
         {
             yield return null;
             for (int i = 0; i < parameters[1].Length; i++)
             {
                 keys[int.Parse(parameters[1][i].ToString()) - 1].OnInteract();
                 yield return new WaitForSecondsRealtime(0.1f);
-                if (moduleSolved)
+                if (uninteractable)
                     yield return "solve";
             }
         }
@@ -288,18 +279,12 @@ public class KeypadMagnifiedScript : MonoBehaviour {
 
     IEnumerator TwitchHandleForcedSolve ()
     {
-        while (!moduleSolved)
+        while (!uninteractable)
         {
-            foreach (KMSelectable key in keys)
-            {
-                int keyIndex = Array.IndexOf(keys, key);
-                if (pressPositions[stage] == keyIndex)
-                {
-                    key.OnInteract();
-                    yield return new WaitForSecondsRealtime(0.1f);
-                }
-            }
+            keys[pressPositions[stage]].OnInteract();
+            yield return new WaitForSeconds(0.1f);
         }
-        yield return null;
+        while (!moduleSolved)
+            yield return true;
     }
 }

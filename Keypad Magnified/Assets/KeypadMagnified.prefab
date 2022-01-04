@@ -473,10 +473,10 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 4862521149204396}
-  - component: {fileID: 114762773824864462}
-  - component: {fileID: 114436608609635854}
   - component: {fileID: 114566179423301878}
   - component: {fileID: 114036596518563022}
+  - component: {fileID: 114436608609635854}
+  - component: {fileID: 114762773824864462}
   - component: {fileID: 114377839925250428}
   m_Layer: 0
   m_Name: KeypadMagnified

@@ -13,10 +13,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   id: keypadMagnified
   title: Keypad Magnified
-  author: Danny7007
+  author: tandyCake
   description: "\u201COne man's trash is another man's treasure... or mod in this
-    case\u201D\r\n~ Crazycaleb\r#5765\n\nModule Created by Danny7007\r\nManual Created
+    case\u201D\r\n~ Crazycaleb\r#5765\n\nModule Created by tandyCake\r\nManual Created
     by Lumbud84\r\nmoduleID: keypadMagnified\r\nManual can be found on ktane.timwi.de\r\n"
-  version: 1.2.1
+  version: 1.3.0
   outputFolder: build
   previewImage: {fileID: 2800000, guid: fd1a570dde8417e4a8068f0813020fc7, type: 3}

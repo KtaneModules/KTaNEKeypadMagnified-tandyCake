@@ -8,8 +8,34 @@ using KModkit;
 
 public class KeypadMagnifiedScript : MonoBehaviour {
 
+    private static readonly int[][] defaultGrids =  {
+            new int[] {0, 2, 5, 7},
+            new int[] {1, 3, 6, 4},
+            new int[] {2, 1, 8, 3},
+            new int[] {3, 4, 7, 2},
+            new int[] {4, 6, 1, 8},
+            new int[] {5, 7, 2, 0},
+            new int[] {6, 8, 0, 5},
+            new int[] {7, 5, 4, 6},
+            new int[] {8, 0, 3, 1}
+        };
+    private static readonly int[][] defaultTable =  {
+            new int[] { 0, 4, 1, 2, 8, 5, 3, 6, 7 },
+            new int[] { 7, 3, 6, 0, 4, 1, 5, 2, 8 },
+            new int[] { 2, 5, 8, 6, 3, 7, 4, 0, 1 },
+            new int[] { 3, 1, 4, 7, 5, 2, 0, 8, 6 },
+            new int[] { 6, 8, 2, 1, 0, 4, 7, 3, 5 },
+            new int[] { 5, 7, 0, 8, 6, 3, 2, 1, 4 },
+            new int[] { 8, 6, 7, 4, 2, 0, 1, 5, 3 },
+            new int[] { 4, 0, 3, 5, 1, 6, 8, 7, 2 },
+            new int[] { 1, 2, 5, 3, 7, 8, 6, 4, 0 }
+        };
+    private static readonly string[] defaultRc = { "row", "column", "row", "column" };
+    private static readonly bool[] defaultReverses = { false, false, true, true };
+    private static readonly string[] defaultDirs = { "left-to-right", "top-to-bottom", "right-to-left", "bottom-to-top" };
     public KMBombInfo bomb;
     public KMAudio audio;
+    public KMRuleSeedable Ruleseed;
     public KMSelectable[] keys;
     public GameObject[] leds;
     public Material[] ledColors; // black green red blue cyan
@@ -23,30 +49,13 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     private bool moduleSolved;
     private bool uninteractable;
     char[] symbols = new char[] { 'Ҋ', 'б', 'Ҩ', 'Ω', '©', 'Ѭ', 'Ӭ', '☆', 'Ѯ' };
-    int[][] grids = new int[][] //4x9
-    {
-        new int[] {0, 2, 5, 7},
-        new int[] {1, 3, 6, 4},
-        new int[] {2, 1, 8, 3},
-        new int[] {3, 4, 7, 2},
-        new int[] {4, 6, 1, 8},
-        new int[] {5, 7, 2, 0},
-        new int[] {6, 8, 0, 5},
-        new int[] {7, 5, 4, 6},
-        new int[] {8, 0, 3, 1}
-    };
-    int[][] table = new int[][]
-    {
-        new int[] { 0, 4, 1, 2, 8, 5, 3, 6, 7 },
-        new int[] { 7, 3, 6, 0, 4, 1, 5, 2, 8 },
-        new int[] { 2, 5, 8, 6, 3, 7, 4, 0, 1 },
-        new int[] { 3, 1, 4, 7, 5, 2, 0, 8, 6 },
-        new int[] { 6, 8, 2, 1, 0, 4, 7, 3, 5 },
-        new int[] { 5, 7, 0, 8, 6, 3, 2, 1, 4 },
-        new int[] { 8, 6, 7, 4, 2, 0, 1, 5, 3 },
-        new int[] { 4, 0, 3, 5, 1, 6, 8, 7, 2 },
-        new int[] { 1, 2, 5, 3, 7, 8, 6, 4, 0 }
-    };
+    
+    int[][] grids; //4x9
+    int[][] table;
+    string[] rc;
+    bool[] reverses;
+    string[] dirs;
+
     int[] chosenGrid = new int[4];
     int chosenGridIndex;
     int chosenPosition;
@@ -77,11 +86,75 @@ public class KeypadMagnifiedScript : MonoBehaviour {
     }
     void Start()
     {
+        SetRuleseed();
         GetGrid();
         DisplayInfo();
         GetTableSection();
         GetPresses();
     }
+    #region Ruleseed
+    void SetRuleseed()
+    {
+        var rnd = Ruleseed.GetRNG();
+        if (rnd.Seed == 1)
+        {
+            grids = defaultGrids;
+            table = defaultTable;
+            rc = defaultRc;
+            dirs = defaultDirs;
+            reverses = defaultReverses;
+        }
+        else
+        {
+            RandomizeMiniGrids(rnd);
+            RandomizeBigGrid(rnd);
+            RandomizeWords(rnd);
+        }
+    }
+    void RandomizeMiniGrids(MonoRandom rnd)
+    {
+        var mergedGrid = LatinSquare.Generate(rnd, 4, 9, 9);
+        grids = new int[9][];
+        for (var gIx = 0; gIx < 9; gIx++)
+        {
+            grids[gIx] = new int[4];
+            for (var i = 0; i < 4; i++)
+                grids[gIx][i] = mergedGrid[4 * gIx + i];
+        }
+    }
+    void RandomizeBigGrid(MonoRandom rnd)
+    {
+        var grid = LatinSquare.Generate(rnd, 9, 9, 9);
+        table = new int[9][];
+        for (int i = 0; i < 9; i++)
+        {
+            table[i] = new int[9];
+            for (int j = 0; j < 9; j++)
+                table[i][j] = grid[9 * i + j];
+        }
+    }
+    void RandomizeWords(MonoRandom rnd)
+    {
+        rc = new[]  { "row", "column", "row", "column" };
+        reverses = new[]  { true, true, false, false };
+        rnd.ShuffleFisherYates(rc);
+        rnd.ShuffleFisherYates(reverses);
+        dirs = new string[4];
+        for (int i = 0; i < 4; i++)
+        {
+            if (rc[i] == "row")
+                if (reverses[i])
+                    dirs[i] = "right to left";
+                else
+                    dirs[i] = "left to right";
+            else
+                if (reverses[i])
+                dirs[i] = "bottom to top";
+            else
+                dirs[i] = "top to bottom";
+        }
+    }
+    #endregion
     void KeyPress(KMSelectable key)
     {
         keyIndexPressed = Array.IndexOf(keys, key);
@@ -134,31 +207,18 @@ public class KeypadMagnifiedScript : MonoBehaviour {
         if (bomb.GetSerialNumberNumbers().Last() == 0)
             tableIndex = (bomb.GetSerialNumberLetters().First() - 65 ) % 9; 
         else tableIndex = bomb.GetSerialNumberNumbers().Last() - 1;
-
+        int tableCase = -1;
         if (!firstEven && lastEven)
-        {
-            tableUsing = "row";
-            tableDirection = "left-to-right";
-            reverse = false;
-        }
+            tableCase = 0;
         if (firstEven && !lastEven)
-        {
-            tableUsing = "column";
-            tableDirection = "top-to-bottom";
-            reverse = false;
-        }
+            tableCase = 1;
         if (firstEven && lastEven)
-        {
-            tableUsing = "row";
-            tableDirection = "right-to-left";
-            reverse = true;
-        }
+            tableCase = 2;
         if (!firstEven && !lastEven)
-        {
-            tableUsing = "column";
-            tableDirection = "bottom-to-top";
-            reverse = true;
-        }
+            tableCase = 3;
+        tableUsing = rc[tableCase];
+        tableDirection = dirs[tableCase];
+        reverse = reverses[tableCase];
         Debug.LogFormat("[Keypad Magnified #{0}] The module is reading {1} {2} of the table from {3}", moduleId, tableUsing, tableIndex + 1, tableDirection); 
     }
     void GetPresses()

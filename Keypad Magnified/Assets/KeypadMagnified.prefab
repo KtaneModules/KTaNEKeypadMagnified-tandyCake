@@ -478,6 +478,7 @@ GameObject:
   - component: {fileID: 114436608609635854}
   - component: {fileID: 114762773824864462}
   - component: {fileID: 114377839925250428}
+  - component: {fileID: 114966383411171382}
   m_Layer: 0
   m_Name: KeypadMagnified
   m_TagString: mod.bundle
@@ -1575,6 +1576,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   bomb: {fileID: 114036596518563022}
   audio: {fileID: 114566179423301878}
+  Ruleseed: {fileID: 114966383411171382}
   keys:
   - {fileID: 114646167770058992}
   - {fileID: 114398031913357146}
@@ -1886,6 +1888,18 @@ MonoBehaviour:
   m_Script: {fileID: -381104716, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114966383411171382
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1902209504123062}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adf69c2de51bd3c43bbd9bc22578ee08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _seed: 1
 --- !u!114 &114997136910972842
 MonoBehaviour:
   m_ObjectHideFlags: 1
